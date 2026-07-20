@@ -35,6 +35,14 @@ bap1b-corr-public/
 └── LICENSE
 ```
 
+## Tutorial
+
+`tutorial/tutorial_script.R` walks through Scenario 3 (realistic ADNI-derived covariance structure) step by step, comparing all three estimators on both complete and dropout data.
+
+An identical notebook version can be run directly in the browser:
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/RDoerfel/bap1b-corr-public/blob/main/tutorial/tutorial_colab.ipynb)
+
 ## Reproducing the results
 
 ### 1 — System requirements
@@ -68,14 +76,6 @@ Each script assumes the **project root** as the working directory. In RStudio, o
 ## Real data analysis
 
 `real_data/real_data.R` documents the full analysis pipeline applied to the ADNI dataset (PAD vs. grey matter volume in CN subjects). The underlying data are not publicly available and cannot be shared; the script is provided for transparency so that the reported results can be understood and verified against the methodology in the paper.
-
-## Tutorial
-
-`tutorial/tutorial_script.R` walks through Scenario 3 (realistic ADNI-derived covariance structure) step by step, comparing all three estimators on both complete and dropout data.
-
-An identical notebook version can be run directly in the browser:
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/RDoerfel/bap1b-corr-public/blob/main/tutorial/tutorial_colab.ipynb)
 
 ## License
 
