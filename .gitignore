@@ -1,0 +1,34 @@
+# R
+.Rhistory
+.RData
+.Ruserdata
+.Rprofile
+*.Rout
+
+# renv
+renv/library/
+renv/python/
+renv/staging/
+renv/sandbox/
+.Rprofile
+
+# Results (generated outputs — reproduce via run_all.R)
+results/*
+!results/.gitkeep
+
+# Data (not publicly available)
+data/*
+!data/.gitkeep
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
