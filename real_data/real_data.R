@@ -60,6 +60,7 @@ data_4years_min2 <- data_4years %>%
     dplyr::group_by(subject_id) %>%
     dplyr::filter(n() >= 2) %>%
     dplyr::ungroup()
+
 print("Number of subjects with at least 2 visits:")
 print(dim(data_4years_min2))
 
@@ -85,10 +86,17 @@ data_cn <- data_4years_min2_yearly %>%
     dplyr::ungroup()
 
 # Normalise time so that each subject's first visit is t = 0
-data_cn <- data_cn %>%
-    dplyr::group_by(subject_id) %>%
-    dplyr::mutate(time = time - min(time)) %>%
-    dplyr::ungroup()
+# data_cn <- data_cn %>%
+#     dplyr::group_by(subject_id) %>%
+#     dplyr::mutate(time = time - min(time)) %>%
+#     dplyr::ungroup()
+
+print("After Time Normalisation:")
+print(table(data_cn$time))
+
+print("Missing percentage:")
+print((1 - table(data_cn$time) / table(data_cn$time)[1]) * 100)
+
 
 print(dim(data_cn))
 print(table(data_cn$session_id))
@@ -212,6 +220,7 @@ write.csv(results_all, "results/real_data_results.csv", row.names = FALSE)
 # ---------------------------------------------------------------------------
 
 n_ready <- nrow(data_ready[data_ready$time == 0, ])
+print(paste("n_ready (subjects at baseline):", n_ready))
 
 time_patterns <- data_ready %>%
     group_by(id) %>%
