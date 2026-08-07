@@ -70,6 +70,25 @@ simulate_dropout <- function(data_long, dropout_pattern) {
     }, by = id]
 }
 
+# Simulate intermittent missingness based on the same ADNI-derived pattern,
+# without the monotone dropout constraint: each timepoint is independently
+# missing with the marginal probability implied by the pattern, so a subject
+# can miss a visit and still be observed at a later one.
+simulate_missingness <- function(data_long, dropout_pattern) {
+    data_long_missing <- copy(data_long)
+
+    # Marginal probability of being missing at each timepoint
+    miss_prob <- 1 - dropout_pattern / dropout_pattern[1]
+
+    data_long_missing[, {
+        missing <- rbinom(length(time), size = 1, prob = miss_prob[time + 1]) == 1
+        X_new <- ifelse(missing, NA, X)
+        Y_new <- ifelse(missing, NA, Y)
+
+        list(time = time, X = X_new, Y = Y_new)
+    }, by = id]
+}
+
 # Strategy 1: correlate per-subject OLS slopes.
 strategy_1 <- function(data_long, baseline_case=FALSE) {
     if (baseline_case) {
@@ -231,10 +250,16 @@ strategy_2a <- function(data, contrast, adjusted=FALSE) {
     return(results)
 }
 
-run_simulation <- function(n_runs, n_subjects, n_measurements, mu, sigma_XY, contrast, adjusted=FALSE, dropout_pattern, label="") {
+run_simulation <- function(n_runs, n_subjects, n_measurements, mu, sigma_XY, contrast, adjusted=FALSE, dropout_pattern, mechanism="dropout", label="") {
     results_1 <- numeric(n_runs)
     results_2a <- numeric(n_runs)
     results_2b <- numeric(n_runs)
+
+    missingness_fun <- switch(mechanism,
+        dropout     = simulate_dropout,
+        missingness = simulate_missingness,
+        stop("mechanism must be 'dropout' or 'missingness'")
+    )
 
     if (nzchar(label)) message(label)
     pb <- txtProgressBar(min = 0, max = n_runs, style = 3)
@@ -242,7 +267,7 @@ run_simulation <- function(n_runs, n_subjects, n_measurements, mu, sigma_XY, con
         set.seed(i)
         data <- simulate_data(n_subjects, mu, sigma_XY, n_measurements)
         data_long <- make_data_long(data)
-        data_missing_long <- simulate_dropout(data_long, dropout_pattern)
+        data_missing_long <- missingness_fun(data_long, dropout_pattern)
         data_missing_longlong <- make_data_longlong(data_missing_long)
 
         if (adjusted) {
