@@ -91,10 +91,10 @@ data_cn <- data_4years_min2_yearly %>%
 #     dplyr::mutate(time = time - min(time)) %>%
 #     dplyr::ungroup()
 
-print("After Time Normalisation:")
-print(table(data_cn$time))
+# print("After Time Normalisation:")
+# print(table(data_cn$time))
 
-print("Missing percentage:")
+print("Missing percentage (CN):")
 print((1 - table(data_cn$time) / table(data_cn$time)[1]) * 100)
 
 
