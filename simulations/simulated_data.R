@@ -4,7 +4,7 @@ set.seed(42)
 n_subjects    <- 1000
 n_measurements <- 5
 n_runs        <- 100
-dropout_pattern <- c(666, 518, 453, 290, 197)
+dropout_pattern <- c(666, 518, 453, 290, 197) # taken from real data, adjusted to be monotonic
 
 time   <- 0:(n_measurements - 1)
 weight <- (time - mean(time)) / sum((time - mean(time))^2)
@@ -40,8 +40,8 @@ cov_true_bxby_diag_const_adjusted_final <- cov_true_bxby_diag_const_adjusted[1:2
                                      cov_true_bxby_diag_const_adjusted[3:4, 1:2] # sigma_cross^T
 corr_true_diag_const_adjusted <- cov_true_bxby_diag_const_adjusted_final[1, 2] / sqrt(cov_true_bxby_diag_const_adjusted_final[1, 1] * cov_true_bxby_diag_const_adjusted_final[2, 2])
 
-results_diag_const          <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_XY_diag_const, contrast,          dropout_pattern = dropout_pattern, label = "Scenario 1 (unadjusted)")
-results_diag_const_adjusted <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_XY_diag_const, contrast_adjusted, adjusted = TRUE, dropout_pattern = dropout_pattern, label = "Scenario 1 (adjusted)")
+results_diag_const <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_XY_diag_const, contrast, dropout_pattern = dropout_pattern, mechanism = "dropout", label = "Scenario 1 (unadjusted)")
+results_diag_const_adjusted <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_XY_diag_const, contrast_adjusted, adjusted = TRUE, dropout_pattern = dropout_pattern, mechanism = "dropout", label = "Scenario 1 (adjusted)")
 
 # Scenario 2: non-constant diagonal cross-correlation
 rho_XY_diagonal <- diag(c(0.8, 0.7, 0.6, 0.5, 0.4))
@@ -59,8 +59,8 @@ cov_true_bxby_diag_adjusted_final <- cov_true_bxby_diag_adjusted[1:2, 1:2] - # s
                                      cov_true_bxby_diag_adjusted[3:4, 1:2] # sigma_cross^T
 corr_true_diag_adjusted <- cov_true_bxby_diag_adjusted_final[1, 2] / sqrt(cov_true_bxby_diag_adjusted_final[1, 1] * cov_true_bxby_diag_adjusted_final[2, 2])
 
-results_diag          <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_XY_diag, contrast,          dropout_pattern = dropout_pattern, label = "Scenario 2 (unadjusted)")
-results_diag_adjusted <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_XY_diag, contrast_adjusted, adjusted = TRUE, dropout_pattern = dropout_pattern, label = "Scenario 2 (adjusted)")
+results_diag          <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_XY_diag, contrast, dropout_pattern = dropout_pattern, mechanism = "dropout", label = "Scenario 2 (unadjusted)")
+results_diag_adjusted <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_XY_diag, contrast_adjusted, adjusted = TRUE, dropout_pattern = dropout_pattern, mechanism = "dropout", label = "Scenario 2 (adjusted)")
 
 # Scenario 3: realistic covariance structure, estimated from ADNI (CN subjects)
 rho_YY <- matrix(
@@ -117,8 +117,8 @@ sigma_bXbY_realistic_adjusted_final <- sigma_bXbY_realistic_adjusted[1:2, 1:2] -
                                      sigma_bXbY_realistic_adjusted[3:4, 1:2] # sigma_cross^T
 corr_true_realistic_adjusted <- sigma_bXbY_realistic_adjusted_final[1, 2] / sqrt(sigma_bXbY_realistic_adjusted_final[1, 1] * sigma_bXbY_realistic_adjusted_final[2, 2])
 
-results_realistic          <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_joint_XY, contrast,          dropout_pattern = dropout_pattern, label = "Scenario 3 (unadjusted)")
-results_realistic_adjusted <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_joint_XY, contrast_adjusted, adjusted = TRUE, dropout_pattern = dropout_pattern, label = "Scenario 3 (adjusted)")
+results_realistic          <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_joint_XY, contrast, dropout_pattern = dropout_pattern, mechanism = "dropout", label = "Scenario 3 (unadjusted)")
+results_realistic_adjusted <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_joint_XY, contrast_adjusted, adjusted = TRUE, dropout_pattern = dropout_pattern, mechanism = "dropout", label = "Scenario 3 (adjusted)")
 
 results <- rbind(
     data.table(experiment = "Scenario 1", adjusted = FALSE, strategy = results_diag_const$variable,          value = results_diag_const$value,          true = corr_true_diag_const),
