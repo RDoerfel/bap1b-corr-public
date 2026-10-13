@@ -7,7 +7,7 @@
 #
 # Output: all PDFs and TSVs written to results/
 #
-# Runtime: ~30–60 min (100 Monte Carlo runs × 3 scenarios × 2 estimators).
+# Runtime: scales with n_runs in simulations/simulated_data.R (6 scenarios × 2 adjustments × 3 strategies).
 # For a quick smoke-test, open simulations/simulated_data.R and temporarily
 # set n_runs <- 5 before sourcing.
 # =============================================================================
@@ -20,6 +20,9 @@ if (!dir.exists("results")) dir.create("results")
 
 message("=== Running simulation: main scenarios ===")
 source("simulations/simulated_data.R")
+
+message("=== Performance tables ===")
+source("simulations/performance_table.R")
 
 # ── Figures ───────────────────────────────────────────────────────────────────
 

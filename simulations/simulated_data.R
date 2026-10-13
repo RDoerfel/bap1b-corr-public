@@ -3,8 +3,12 @@ set.seed(42)
 
 n_subjects    <- 1000
 n_measurements <- 5
-n_runs        <- 100
+n_runs        <- 1000
 dropout_pattern <- c(666, 518, 453, 290, 197) # taken from real data, adjusted to be monotonic
+beta_mar      <- -2 # MAR dropout strength for scenarios 1b-3b (beta < 0: subjects losing more Y drop out more)
+
+message("N per dataset: ", n_subjects, " subjects at baseline; expected observed per visit: ",
+        paste(round(n_subjects * dropout_pattern / dropout_pattern[1]), collapse = ", "))
 
 time   <- 0:(n_measurements - 1)
 weight <- (time - mean(time)) / sum((time - mean(time))^2)
@@ -42,6 +46,8 @@ corr_true_diag_const_adjusted <- cov_true_bxby_diag_const_adjusted_final[1, 2] /
 
 results_diag_const <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_XY_diag_const, contrast, dropout_pattern = dropout_pattern, mechanism = "dropout", label = "Scenario 1 (unadjusted)")
 results_diag_const_adjusted <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_XY_diag_const, contrast_adjusted, adjusted = TRUE, dropout_pattern = dropout_pattern, mechanism = "dropout", label = "Scenario 1 (adjusted)")
+results_diag_const_mar <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_XY_diag_const, contrast, dropout_pattern = dropout_pattern, mechanism = "dropout_mar", beta_mar = beta_mar, label = "Scenario 1b (unadjusted)")
+results_diag_const_mar_adjusted <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_XY_diag_const, contrast_adjusted, adjusted = TRUE, dropout_pattern = dropout_pattern, mechanism = "dropout_mar", beta_mar = beta_mar, label = "Scenario 1b (adjusted)")
 
 # Scenario 2: non-constant diagonal cross-correlation
 rho_XY_diagonal <- diag(c(0.8, 0.7, 0.6, 0.5, 0.4))
@@ -61,6 +67,8 @@ corr_true_diag_adjusted <- cov_true_bxby_diag_adjusted_final[1, 2] / sqrt(cov_tr
 
 results_diag          <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_XY_diag, contrast, dropout_pattern = dropout_pattern, mechanism = "dropout", label = "Scenario 2 (unadjusted)")
 results_diag_adjusted <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_XY_diag, contrast_adjusted, adjusted = TRUE, dropout_pattern = dropout_pattern, mechanism = "dropout", label = "Scenario 2 (adjusted)")
+results_diag_mar          <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_XY_diag, contrast, dropout_pattern = dropout_pattern, mechanism = "dropout_mar", beta_mar = beta_mar, label = "Scenario 2b (unadjusted)")
+results_diag_mar_adjusted <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_XY_diag, contrast_adjusted, adjusted = TRUE, dropout_pattern = dropout_pattern, mechanism = "dropout_mar", beta_mar = beta_mar, label = "Scenario 2b (adjusted)")
 
 # Scenario 3: realistic covariance structure, estimated from ADNI (CN subjects)
 rho_YY <- matrix(
@@ -119,17 +127,27 @@ corr_true_realistic_adjusted <- sigma_bXbY_realistic_adjusted_final[1, 2] / sqrt
 
 results_realistic          <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_joint_XY, contrast, dropout_pattern = dropout_pattern, mechanism = "dropout", label = "Scenario 3 (unadjusted)")
 results_realistic_adjusted <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_joint_XY, contrast_adjusted, adjusted = TRUE, dropout_pattern = dropout_pattern, mechanism = "dropout", label = "Scenario 3 (adjusted)")
+results_realistic_mar          <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_joint_XY, contrast, dropout_pattern = dropout_pattern, mechanism = "dropout_mar", beta_mar = beta_mar, label = "Scenario 3b (unadjusted)")
+results_realistic_mar_adjusted <- run_simulation(n_runs, n_subjects, n_measurements, mu, sigma_joint_XY, contrast_adjusted, adjusted = TRUE, dropout_pattern = dropout_pattern, mechanism = "dropout_mar", beta_mar = beta_mar, label = "Scenario 3b (adjusted)")
 
 results <- rbind(
-    data.table(experiment = "Scenario 1", adjusted = FALSE, strategy = results_diag_const$variable,          value = results_diag_const$value,          true = corr_true_diag_const),
-    data.table(experiment = "Scenario 2", adjusted = FALSE, strategy = results_diag$variable,                value = results_diag$value,                true = corr_true_diag),
-    data.table(experiment = "Scenario 3", adjusted = FALSE, strategy = results_realistic$variable,           value = results_realistic$value,           true = corr_true_realistic),
-    data.table(experiment = "Scenario 1", adjusted = TRUE,  strategy = results_diag_const_adjusted$variable, value = results_diag_const_adjusted$value,  true = corr_true_diag_const_adjusted),
-    data.table(experiment = "Scenario 2", adjusted = TRUE,  strategy = results_diag_adjusted$variable,       value = results_diag_adjusted$value,        true = corr_true_diag_adjusted),
-    data.table(experiment = "Scenario 3", adjusted = TRUE,  strategy = results_realistic_adjusted$variable,  value = results_realistic_adjusted$value,   true = corr_true_realistic_adjusted)
+    data.table(experiment = "Scenario 1",  scenario = "S1",  mechanism = "MCAR", adjusted = FALSE, strategy = results_diag_const$variable,              value = results_diag_const$value,              true = corr_true_diag_const),
+    data.table(experiment = "Scenario 2",  scenario = "S2",  mechanism = "MCAR", adjusted = FALSE, strategy = results_diag$variable,                    value = results_diag$value,                    true = corr_true_diag),
+    data.table(experiment = "Scenario 3",  scenario = "S3",  mechanism = "MCAR", adjusted = FALSE, strategy = results_realistic$variable,               value = results_realistic$value,               true = corr_true_realistic),
+    data.table(experiment = "Scenario 1",  scenario = "S1",  mechanism = "MCAR", adjusted = TRUE,  strategy = results_diag_const_adjusted$variable,     value = results_diag_const_adjusted$value,     true = corr_true_diag_const_adjusted),
+    data.table(experiment = "Scenario 2",  scenario = "S2",  mechanism = "MCAR", adjusted = TRUE,  strategy = results_diag_adjusted$variable,           value = results_diag_adjusted$value,           true = corr_true_diag_adjusted),
+    data.table(experiment = "Scenario 3",  scenario = "S3",  mechanism = "MCAR", adjusted = TRUE,  strategy = results_realistic_adjusted$variable,      value = results_realistic_adjusted$value,      true = corr_true_realistic_adjusted),
+    data.table(experiment = "Scenario 1b", scenario = "S1b", mechanism = "MAR",  adjusted = FALSE, strategy = results_diag_const_mar$variable,          value = results_diag_const_mar$value,          true = corr_true_diag_const),
+    data.table(experiment = "Scenario 2b", scenario = "S2b", mechanism = "MAR",  adjusted = FALSE, strategy = results_diag_mar$variable,                value = results_diag_mar$value,                true = corr_true_diag),
+    data.table(experiment = "Scenario 3b", scenario = "S3b", mechanism = "MAR",  adjusted = FALSE, strategy = results_realistic_mar$variable,           value = results_realistic_mar$value,           true = corr_true_realistic),
+    data.table(experiment = "Scenario 1b", scenario = "S1b", mechanism = "MAR",  adjusted = TRUE,  strategy = results_diag_const_mar_adjusted$variable, value = results_diag_const_mar_adjusted$value, true = corr_true_diag_const_adjusted),
+    data.table(experiment = "Scenario 2b", scenario = "S2b", mechanism = "MAR",  adjusted = TRUE,  strategy = results_diag_mar_adjusted$variable,       value = results_diag_mar_adjusted$value,       true = corr_true_diag_adjusted),
+    data.table(experiment = "Scenario 3b", scenario = "S3b", mechanism = "MAR",  adjusted = TRUE,  strategy = results_realistic_mar_adjusted$variable,  value = results_realistic_mar_adjusted$value,  true = corr_true_realistic_adjusted)
 )
 
 results$value <- as.numeric(results$value)
+# count as failure: missing estimate or estimate outside [-1, 1]
+results$failed <- is.na(results$value) | results$value < -1 | results$value > 1
 # set estimates outside [-1, 1] to NA (numerical instability in small bootstrap resamples)
 results$value[results$value < -1 | results$value > 1] <- NA
 

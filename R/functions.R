@@ -70,6 +70,61 @@ simulate_dropout <- function(data_long, dropout_pattern) {
     }, by = id]
 }
 
+# Simulate monotone dropout that is missing at random (MAR). After each visit t,
+# a subject still in the study drops out with probability plogis(a_t + beta * z_t),
+# where z_t is the standardized change from baseline Y_t - Y_0 (observed data only,
+# so the mechanism is MAR). The intercepts a_t are calibrated per dataset so the
+# expected retention matches dropout_pattern; beta = 0 reproduces MCAR dropout.
+simulate_dropout_mar <- function(data_long, dropout_pattern, beta) {
+    n_visits <- length(dropout_pattern)
+
+    # Conditional probability of dropping out after visit t, given still in at t
+    hazard <- 1 - dropout_pattern[-1] / dropout_pattern[-n_visits]
+
+    # Wide matrix of Y (one row per subject, one column per visit) for fast per-visit access
+    Y_wide <- dcast(data_long, id ~ time, value.var = "Y")
+    ids <- Y_wide$id
+    Y_mat <- as.matrix(Y_wide[, -1])
+
+    # Everyone starts as a completer (last visit) and at risk of dropping out
+    subject_dropout_time <- rep(n_visits - 1, length(ids))
+    at_risk <- rep(TRUE, length(ids))
+
+    # Decide dropout visit by visit, using only data observed up to visit t (keeps it MAR)
+    for (t in 0:(n_visits - 2)) {
+        if (t == 0) {
+            z <- rep(0, length(ids)) # no change at baseline, so the first transition is MCAR
+        } else {
+            # standardize with the complete data so beta has the same meaning at every visit
+            change <- Y_mat[, t + 1] - Y_mat[, 1]
+            z <- (change - mean(change)) / sd(change)
+        }
+        # Nothing to do if nobody should drop at this visit or nobody is left
+        if (hazard[t + 1] <= 0 || !any(at_risk)) next
+
+        # Pick the intercept so the average dropout probability equals the ADNI hazard
+        z_risk <- z[at_risk]
+        intercept <- uniroot(function(a) mean(plogis(a + beta * z_risk)) - hazard[t + 1],
+                             interval = c(-50, 50))$root
+        # Each at-risk subject drops with a probability that depends on their own change in Y
+        drop <- rbinom(length(z_risk), size = 1, prob = plogis(intercept + beta * z_risk)) == 1
+
+        # Record the last observed visit for those who drop and remove them from the risk set
+        dropped <- which(at_risk)[drop]
+        subject_dropout_time[dropped] <- t
+        at_risk[dropped] <- FALSE
+    }
+
+    # Set X and Y to NA after each subject's last observed visit (monotone dropout)
+    data_long %>%
+        dplyr::mutate(
+            dropout_time = subject_dropout_time[match(id, ids)],
+            X = ifelse(time > dropout_time, NA, X),
+            Y = ifelse(time > dropout_time, NA, Y)
+        ) %>%
+        dplyr::select(-dropout_time)
+}
+
 # Simulate intermittent missingness based on the same ADNI-derived pattern,
 # without the monotone dropout constraint: each timepoint is independently
 # missing with the marginal probability implied by the pattern, so a subject
@@ -250,7 +305,7 @@ strategy_2a <- function(data, contrast, adjusted=FALSE) {
     return(results)
 }
 
-run_simulation <- function(n_runs, n_subjects, n_measurements, mu, sigma_XY, contrast, adjusted=FALSE, dropout_pattern, mechanism="dropout", label="") {
+run_simulation <- function(n_runs, n_subjects, n_measurements, mu, sigma_XY, contrast, adjusted=FALSE, dropout_pattern, mechanism="dropout", beta_mar=0, label="") {
     results_1 <- numeric(n_runs)
     results_2a <- numeric(n_runs)
     results_2b <- numeric(n_runs)
@@ -258,7 +313,8 @@ run_simulation <- function(n_runs, n_subjects, n_measurements, mu, sigma_XY, con
     missingness_fun <- switch(mechanism,
         dropout     = simulate_dropout,
         missingness = simulate_missingness,
-        stop("mechanism must be 'dropout' or 'missingness'")
+        dropout_mar = function(d, p) simulate_dropout_mar(d, p, beta_mar),
+        stop("mechanism must be 'dropout', 'missingness' or 'dropout_mar'")
     )
 
     if (nzchar(label)) message(label)
